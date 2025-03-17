@@ -16,6 +16,10 @@ const sch = mongoose.Schema({
     msg : {
         required : [true,"Message is required"],
         type : String
+    },
+    date : {
+        type : Date,
+        default : Date.now
     }
 })
 
