@@ -1,5 +1,9 @@
 const mongoose = require('mongoose')
-
+const getISTTime = () => {
+  let date = new Date();
+  let istOffset = 5.5 * 60 * 60 * 1000; // IST Offset (+5:30)
+  return new Date(date.getTime() + istOffset);
+};
 const sch = mongoose.Schema({
     name : {
         required : [true,"Name is required"],
@@ -19,7 +23,7 @@ const sch = mongoose.Schema({
     },
     date : {
         type : Date,
-        default : Date.now
+        default : getISTTime
     }
 })
 
