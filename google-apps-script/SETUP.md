@@ -48,6 +48,24 @@ Apps Script web apps can't answer a CORS preflight. Posting JSON with a
 Sending the same JSON body as `text/plain` keeps it a "simple" request, so the
 browser skips the preflight. The script still parses it with `JSON.parse`.
 
+## Email notifications
+
+`notify_` emails you on every submission. It's on by default — the only thing
+to check is that `NOTIFY_EMAIL` at the top of `Code.gs` is the address you want.
+Set it to `''` to turn it off.
+
+The mail has the sender's address as **Reply-To**, so hitting Reply in Gmail
+answers them directly instead of yourself, and it links back to the sheet.
+
+To test it without filling in the form: in the Apps Script editor pick
+**testNotification** from the function dropdown and hit **Run**. The first run
+asks for the Gmail send permission. If the mail arrives, the form will work too.
+
+If a notification ever fails, the message is still written to the sheet — mail
+is wrapped in its own try/catch so a mail problem can't tell a sender their
+message didn't go through when it did. Failures show in **Executions** in the
+left sidebar.
+
 ## Notes
 
 - Google caps `MailApp` at 100 emails/day on a free account. Far beyond what a
