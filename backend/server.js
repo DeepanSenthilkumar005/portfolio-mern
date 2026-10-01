@@ -1,37 +1,84 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const app = express();
+const rateLimit = require('express-rate-limit');
+
 const ConnectDB = require('./config/DbConnect');
-const Feedback = require('./models/feedback')
+const Feedback = require('./models/feedback');
 
-app.use(cors());
-app.use(express.json());
+const app = express();
 
-// Connecting the Database
+// Only the portfolio itself may post here. Set ALLOWED_ORIGINS in the env as a
+// comma-separated list; localhost stays in for development.
+const allowedOrigins = (
+  process.env.ALLOWED_ORIGINS ||
+  'https://deepanreactportfolio.netlify.app,http://localhost:5173'
+)
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow non-browser clients (curl, health checks) which send no Origin.
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error('Origin not allowed'));
+    },
+  })
+);
+
+app.use(express.json({ limit: '10kb' }));
+app.set('trust proxy', 1); // Render sits behind a proxy
+
 ConnectDB();
+
+const feedbackLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many messages from this address. Try again later.' },
+});
+
+const isEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+app.get('/health', (_req, res) => res.json({ ok: true }));
+
+app.post('/feedback', feedbackLimiter, async (req, res) => {
+  try {
+    const { name, email, phone, msg, website } = req.body || {};
+
+    // Honeypot: real users never fill a hidden field.
+    if (website) return res.status(201).json({ message: 'Feedback submitted successfully!' });
+
+    if (!name || !email || !msg) {
+      return res.status(400).json({ error: 'Name, email and message are required.' });
+    }
+
+    if (!isEmail(email)) {
+      return res.status(400).json({ error: 'That email address does not look right.' });
+    }
+
+    if (name.length > 100 || msg.length > 2000) {
+      return res.status(400).json({ error: 'That message is too long.' });
+    }
+
+    await new Feedback({
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: (phone || '').trim(),
+      msg: msg.trim(),
+    }).save();
+
+    res.status(201).json({ message: 'Feedback submitted successfully!' });
+  } catch (error) {
+    console.error('POST /feedback failed:', error);
+    res.status(500).json({ error: 'Something went wrong on our end.' });
+  }
+});
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
-    console.log(`Backend is running at http://localhost:${port}`);
-});
-
-
-app.post('/feedback', async (req, res) => {
-    try {
-        const { name, email, phone, msg } = req.body;
-
-        // Validation (Optional)
-        if (!name || !email || !msg) {
-            return res.status(400).json({ error: "All fields are required!" });
-        }
-
-        // Create and Save Feedback
-        const newFeedback = new Feedback({ name, email, phone, msg });
-        await newFeedback.save();
-
-        res.status(201).json({ message: "Feedback submitted successfully!" });
-    } catch (error) {
-        res.status(500).json({ error: "Internal Server Error", details: error.message });
-    }
+  console.log(`Backend running at http://localhost:${port}`);
 });
