@@ -74,6 +74,13 @@ app.post('/feedback', feedbackLimiter, async (req, res) => {
     res.status(201).json({ message: 'Feedback submitted successfully!' });
   } catch (error) {
     console.error('POST /feedback failed:', error);
+
+    // Surface validation problems instead of flattening them into a 500.
+    if (error.name === 'ValidationError') {
+      const detail = Object.values(error.errors)[0];
+      return res.status(400).json({ error: detail ? detail.message : 'Invalid submission.' });
+    }
+
     res.status(500).json({ error: 'Something went wrong on our end.' });
   }
 });

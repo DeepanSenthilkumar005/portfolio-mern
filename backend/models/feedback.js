@@ -1,26 +1,33 @@
 const mongoose = require('mongoose')
 
 const sch = mongoose.Schema({
-    name : {
-        required : [true,"Name is required"],
-        type : String
+    name: {
+        required: [true, "Name is required"],
+        type: String,
+        trim: true
     },
-    email : {
-        required : [true,"Email is required"],
-        type : String
+    email: {
+        required: [true, "Email is required"],
+        type: String,
+        trim: true,
+        lowercase: true
     },
-    phone : {
-        required : [true,"Phone is required"],
-        type : Number
+    // Optional: the contact form no longer asks for it. String, not Number, so
+    // "+91 94424 79225" survives intact.
+    phone: {
+        type: String,
+        trim: true,
+        default: ""
     },
-    msg : {
-        required : [true,"Message is required"],
-        type : String
+    msg: {
+        required: [true, "Message is required"],
+        type: String,
+        trim: true
     },
-    date : {
-        type : Date,
-        default : Date.now
+    date: {
+        type: Date,
+        default: Date.now
     }
 })
 
-module.exports = mongoose.model("Feed",sch);
+module.exports = mongoose.model("Feed", sch);
